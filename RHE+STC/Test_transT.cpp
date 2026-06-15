@@ -118,7 +118,7 @@ public:
 
     int rand_max(int x)
     {
-        int res = (rand()*rand())%x;
+	int res = (rand()*1ll*rand())%x;
         if (res<0)
             res+=x;
         return res;
@@ -140,7 +140,7 @@ public:
     void run()
     {
 		//relation_vec
-        FILE* f1 = fopen(("../res/relation2vec."+version).c_str(),"r");
+        FILE* f1 = fopen(("../res_RHE/relation2vec."+version).c_str(),"r");
         cout<<relation_num<<' '<<entity_num<<endl;
         relation_vec.resize(relation_num);
         for (int i=0; i<relation_num;i++)
@@ -150,7 +150,7 @@ public:
                 fscanf(f1,"%lf",&relation_vec[i][ii]);
         }
 		//entity_vec
-		FILE* f2 = fopen(("../res/entity2vec."+version).c_str(),"r");
+		FILE* f2 = fopen(("../res_RHE/entity2vec."+version).c_str(),"r");
 		entity_vec.resize(entity_num);
         for (int i=0; i<entity_num;i++)
         {
@@ -159,7 +159,7 @@ public:
                 fscanf(f2,"%lf",&entity_vec[i][ii]);
         }
 		//type_mat
-		FILE* f3 = fopen(("../res/typeMatrix."+version).c_str(),"r");
+		FILE* f3 = fopen(("../res_RHE/typeMatrix."+version).c_str(),"r");
 		type_mat.resize(type_num);
         for (int i=0; i<type_num;i++)
         {
@@ -172,7 +172,7 @@ public:
 			}
         }
 		//domain_mat
-		FILE* f4 = fopen(("../res/domainMatrix."+version).c_str(),"r");
+		FILE* f4 = fopen(("../res_RHE/domainMatrix."+version).c_str(),"r");
 		domain_mat.resize(domain_num);
         for (int i=0; i<domain_num;i++)
         {
@@ -367,7 +367,7 @@ public:
 		}
 		//output
 		ofstream fout;
-		fout.open("../res.txt");
+		fout.open("../res_RHE/res.txt");
 		fout<<"left:\t"<<lsum/fb_l.size()<<'\t'<<lp_n/fb_l.size()<<"\t"<<lsum_filter/fb_l.size()<<'\t'<<lp_n_filter/fb_l.size()<<endl;
 		fout<<"right:\t"<<rsum/fb_r.size()<<'\t'<<rp_n/fb_r.size()<<'\t'<<rsum_filter/fb_r.size()<<'\t'<<rp_n_filter/fb_r.size()<<endl;
 		fout<<"mid:\t"<<mid_sum/fb_l.size()<<'\t'<<mid_p_n/fb_l.size()<<"\t"<<mid_sum_filter/fb_l.size()<<'\t'<<mid_p_n_filter/fb_l.size()<<endl;
@@ -394,7 +394,7 @@ void prepare()
 	FILE* f5 = fopen("../data/relationType.txt","r");
 	FILE* f6 = fopen("../data/relationDomain.txt","r");
 	int x;
-	//build entity2ID、ID2entity map
+	//build entity2ID??ID2entity map
 	while (fscanf(f1,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -403,7 +403,7 @@ void prepare()
 		mid2type[st]="None";
 		entity_num++;
 	}
-	//build relation2ID、ID2relation map
+	//build relation2ID??ID2relation map
 	while (fscanf(f2,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -411,7 +411,7 @@ void prepare()
 		id2relation[x]=st;
 		relation_num++;
 	}
-	//build type2id、id2type map
+	//build type2id??id2type map
 	while (fscanf(f3,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -419,7 +419,7 @@ void prepare()
 		id2type[x]=st;
 		type_num++;
 	}
-	//build domain2id、id2domain map
+	//build domain2id??id2domain map
 	while (fscanf(f4,"%s%d",buf,&x)==2)
 	{
 		string st=buf;

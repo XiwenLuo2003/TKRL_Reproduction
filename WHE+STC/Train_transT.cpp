@@ -85,7 +85,7 @@ int nbatches, batchsize;
 map<int,map<int,int> > left_entity,right_entity;
 map<int,double> left_num,right_num;
 
-int n,method;		//n：dimension of entity/relation
+int n,method;		//n??dimension of entity/relation
 double res_triple,res_normal;		//loss function value
 double res_thread_triple[THREADS_NUM], res_thread_normal[THREADS_NUM];		//loss for each thread
 double count,count1;
@@ -115,7 +115,7 @@ pthread_mutex_t mut_mutex;
 void sgd();
 void train_triple_mul(int, int, int, int, int, int, int);
 
-vector<double> norm_tmp_vec[THREADS_NUM];		//norm_2中的变量
+vector<double> norm_tmp_vec[THREADS_NUM];		//norm_2???????
 
 double norm_2(vector<double> &a, vector<vector<double> > &D, vector<vector<double> > &T, int tid)		//normalization
 {
@@ -159,11 +159,12 @@ double norm_2(vector<double> &a, vector<vector<double> > &D, vector<vector<doubl
 			}
 		}
 	}
+	return 0;
 }
 
 int rand_max(int x)
 {
-	int res = (rand()*rand())%x;
+	int res = (rand()*1ll*rand())%x;
 	while (res<0)
 		res+=x;
 	return res;
@@ -333,6 +334,7 @@ void *rand_sel(void *tid_void)		//multi-thread train
 		norm_2(entity_tmp[fb_l[i]], domain_mat_tmp[tail_domain_vec[rel_neg]], type_mat_tmp[tail_type_vec[rel_neg]], tid);
 		
 	}
+	return NULL;
 }
 
 void update_multithread()		//update loss
@@ -389,10 +391,10 @@ void sgd()		//mini-batch SGD
 		}
 		//output
 		cout<<"epoch:"<<epoch<<' '<<res_triple<< ' ' << res_normal << endl;
-		FILE* f2 = fopen(("../res/relation2vec."+version).c_str(),"w");
-		FILE* f3 = fopen(("../res/entity2vec."+version).c_str(),"w");
-		FILE* f5 = fopen(("../res/typeMatrix."+version).c_str(),"w");
-		FILE* f6 = fopen(("../res/domainMatrix."+version).c_str(),"w");
+		FILE* f2 = fopen(("../res_WHE/relation2vec."+version).c_str(),"w");
+		FILE* f3 = fopen(("../res_WHE/entity2vec."+version).c_str(),"w");
+		FILE* f5 = fopen(("../res_WHE/typeMatrix."+version).c_str(),"w");
+		FILE* f6 = fopen(("../res_WHE/domainMatrix."+version).c_str(),"w");
 		for (int i=0; i<relation_num; i++)		//relation2vec
 		{
 			for (int ii=0; ii<n; ii++)
@@ -634,7 +636,7 @@ void prepare()		//preprocessing
 	FILE* f6 = fopen("../data/relationDomain.txt","r");
 	FILE* f7 = fopen("../data/typeEntity.txt","r");
 	int x, y, z;
-	//build entity2ID、ID2entity map
+	//build entity2ID??ID2entity map
 	while (fscanf(f1,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -642,7 +644,7 @@ void prepare()		//preprocessing
 		id2entity[x]=st;		//<ID,entity>
 		entity_num++;
 	}
-	//build relation2ID、ID2relation map
+	//build relation2ID??ID2relation map
 	while (fscanf(f2,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -650,7 +652,7 @@ void prepare()		//preprocessing
 		id2relation[x]=st;
 		relation_num++;
 	}
-	//build type2id、id2type map
+	//build type2id??id2type map
 	while (fscanf(f3,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -658,7 +660,7 @@ void prepare()		//preprocessing
 		id2type[x]=st;		//<ID,type>
 		type_num++;
 	}
-	//build domain2id、id2domain map
+	//build domain2id??id2domain map
 	while (fscanf(f4,"%s%d",buf,&x)==2)
 	{
 		string st=buf;

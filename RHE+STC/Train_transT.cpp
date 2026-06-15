@@ -84,7 +84,7 @@ int nbatches, batchsize;
 map<int,map<int,int> > left_entity,right_entity;
 map<int,double> left_num,right_num;
 
-int n,method;		//n£ºdimension of entity/relation
+int n,method;		//ndimension of entity/relation
 double res_triple,res_normal;		//loss function value
 double res_thread_triple[THREADS_NUM], res_thread_normal[THREADS_NUM];		//loss for each thread
 double count,count1;
@@ -171,11 +171,12 @@ double norm_2(vector<double> &a, vector<vector<double> > &D, vector<vector<doubl
 			}
 		}
 	}
+	return 0;
 }
 
 int rand_max(int x)
 {
-	int res = (rand()*rand())%x;
+	int res = (rand()*1ll*rand())%x;
 	while (res<0)
 		res+=x;
 	return res;
@@ -333,13 +334,39 @@ void *rand_sel(void *tid_void)		//multi-thread train
 		train_triple_mul(fb_h[i],fb_l[i],fb_r[i],fb_h[i],fb_l[i],rel_neg,tid);
 		
 		//normalization
+		if (head_type_vec[fb_r[i]] >= type_mat_tmp.size() || head_type_vec[fb_r[i]] < 0) {
+			printf("ERROR: head_type_vec\n"); exit(1);
+		}
+		if (tail_type_vec[fb_r[i]] >= type_mat_tmp.size() || tail_type_vec[fb_r[i]] < 0) {
+			printf("ERROR: tail_type_vec\n"); exit(1);
+		}
+		if (head_domain_vec[rel_neg] >= domain_mat_tmp.size() || head_domain_vec[rel_neg] < 0) {
+			printf("ERROR: head_domain_vec rel_neg\n"); exit(1);
+		}
+		if (head_type_vec[rel_neg] >= type_mat_tmp.size() || head_type_vec[rel_neg] < 0) {
+			printf("ERROR: head_type_vec rel_neg\n"); exit(1);
+		}
+		if (tail_domain_vec[rel_neg] >= domain_mat_tmp.size() || tail_domain_vec[rel_neg] < 0) {
+			printf("ERROR: tail_domain_vec rel_neg\n"); exit(1);
+		}
+		if (tail_type_vec[rel_neg] >= type_mat_tmp.size() || tail_type_vec[rel_neg] < 0) {
+			printf("ERROR: tail_type_vec rel_neg\n"); exit(1);
+		}
 		norm(relation_tmp[fb_r[i]]);
 		norm(relation_tmp[rel_neg]);
 		norm(entity_tmp[fb_h[i]]);
 		norm(entity_tmp[fb_l[i]]);
 		norm(entity_tmp[j]);
 		
+		if (head_domain_vec[fb_r[i]] >= domain_mat_tmp.size() || head_domain_vec[fb_r[i]] < 0) {
+			printf("ERROR: head_domain_vec[%d] = %d (size=%lu)\n", fb_r[i], head_domain_vec[fb_r[i]], domain_mat_tmp.size());
+			exit(1);
+		}
 		norm_2(entity_tmp[fb_h[i]], domain_mat_tmp[head_domain_vec[fb_r[i]]], type_mat_tmp[head_type_vec[fb_r[i]]], tid);
+		if (tail_domain_vec[fb_r[i]] >= domain_mat_tmp.size() || tail_domain_vec[fb_r[i]] < 0) {
+			printf("ERROR: tail_domain_vec[%d] = %d (size=%lu)\n", fb_r[i], tail_domain_vec[fb_r[i]], domain_mat_tmp.size());
+			exit(1);
+		}
 		norm_2(entity_tmp[fb_l[i]], domain_mat_tmp[tail_domain_vec[fb_r[i]]], type_mat_tmp[tail_type_vec[fb_r[i]]], tid);
 		if(flag_num<pr)
 			norm_2(entity_tmp[j], domain_mat_tmp[tail_domain_vec[fb_r[i]]], type_mat_tmp[tail_type_vec[fb_r[i]]], tid);
@@ -349,6 +376,7 @@ void *rand_sel(void *tid_void)		//multi-thread train
 		norm_2(entity_tmp[fb_l[i]], domain_mat_tmp[tail_domain_vec[rel_neg]], type_mat_tmp[tail_type_vec[rel_neg]], tid);
 		
 	}
+	return NULL;
 }
 
 void update_multithread()		//update loss
@@ -405,10 +433,10 @@ void sgd()		//mini-batch SGD
 		}
 		//output
 		cout<<"epoch:"<<epoch<<' '<<res_triple<< ' ' << res_normal << endl;
-		FILE* f2 = fopen(("../res/relation2vec."+version).c_str(),"w");
-		FILE* f3 = fopen(("../res/entity2vec."+version).c_str(),"w");
-		FILE* f5 = fopen(("../res/typeMatrix."+version).c_str(),"w");
-		FILE* f6 = fopen(("../res/domainMatrix."+version).c_str(),"w");
+		FILE* f2 = fopen(("../res_RHE/relation2vec."+version).c_str(),"w");
+		FILE* f3 = fopen(("../res_RHE/entity2vec."+version).c_str(),"w");
+		FILE* f5 = fopen(("../res_RHE/typeMatrix."+version).c_str(),"w");
+		FILE* f6 = fopen(("../res_RHE/domainMatrix."+version).c_str(),"w");
 		for (int i=0; i<relation_num; i++)		//relation2vec
 		{
 			for (int ii=0; ii<n; ii++)
@@ -672,7 +700,7 @@ void prepare()		//preprocessing
 	FILE* f6 = fopen("../data/relationDomain.txt","r");
 	FILE* f7 = fopen("../data/typeEntity.txt","r");
 	int x, y, z;
-	//build entity2ID¡¢ID2entity map
+	//build entity2IDID2entity map
 	while (fscanf(f1,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -680,7 +708,7 @@ void prepare()		//preprocessing
 		id2entity[x]=st;		//<ID,entity>
 		entity_num++;
 	}
-	//build relation2ID¡¢ID2relation map
+	//build relation2IDID2relation map
 	while (fscanf(f2,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -688,7 +716,7 @@ void prepare()		//preprocessing
 		id2relation[x]=st;
 		relation_num++;
 	}
-	//build type2id¡¢id2type map
+	//build type2idid2type map
 	while (fscanf(f3,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -696,7 +724,7 @@ void prepare()		//preprocessing
 		id2type[x]=st;		//<ID,type>
 		type_num++;
 	}
-	//build domain2id¡¢id2domain map
+	//build domain2idid2domain map
 	while (fscanf(f4,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
