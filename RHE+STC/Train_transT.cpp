@@ -221,7 +221,7 @@ void run(int n_in,double rate_in,double margin_in,int method_in)
 		FILE* fc = fopen("../res_RHE/checkpoint.txt", "r");
 		if (fc != NULL) {
 			fclose(fc);
-			FILE* f1 = fopen(("../res_RHE/entity2vec.ckpt").c_str(),"r");
+			FILE* f1 = fopen("../res_RHE/entity2vec.ckpt","r");
 			if (f1 != NULL) {
 				for (int i=0; i<entity_num; i++)
 				{
@@ -231,7 +231,7 @@ void run(int n_in,double rate_in,double margin_in,int method_in)
 				fclose(f1);
 			}
 
-			FILE* f2 = fopen(("../res_RHE/relation2vec.ckpt").c_str(),"r");
+			FILE* f2 = fopen("../res_RHE/relation2vec.ckpt","r");
 			if (f2 != NULL) {
 				for (int i=0; i<relation_num; i++)
 				{
@@ -241,7 +241,7 @@ void run(int n_in,double rate_in,double margin_in,int method_in)
 				fclose(f2);
 			}
 
-			FILE* f3 = fopen(("../res_RHE/typeMatrix.ckpt").c_str(),"r");
+			FILE* f3 = fopen("../res_RHE/typeMatrix.ckpt","r");
 			if (f3 != NULL) {
 				for (int i=0; i<type_num; i++)
 				{
@@ -253,7 +253,7 @@ void run(int n_in,double rate_in,double margin_in,int method_in)
 				}
 				fclose(f3);
 			}
-			FILE* f4 = fopen(("../res_RHE/domainMatrix.ckpt").c_str(),"r");
+			FILE* f4 = fopen("../res_RHE/domainMatrix.ckpt","r");
 			if (f4 != NULL) {
 				for (int i=0; i<domain_num; i++)
 				{
@@ -495,10 +495,10 @@ void sgd()		//mini-batch SGD
 		//output
 		if (epoch % 10 == 0 || epoch == nepoch - 1) {
 			cout<<"epoch:"<<epoch<<' '<<res_triple<< ' ' << res_normal << endl;
-			FILE* f2 = fopen(("../res_RHE/relation2vec.ckpt").c_str(),"w");
-			FILE* f3 = fopen(("../res_RHE/entity2vec.ckpt").c_str(),"w");
-			FILE* f5 = fopen(("../res_RHE/typeMatrix.ckpt").c_str(),"w");
-			FILE* f6 = fopen(("../res_RHE/domainMatrix.ckpt").c_str(),"w");
+			FILE* f2 = fopen("../res_RHE/relation2vec.ckpt","w");
+			FILE* f3 = fopen("../res_RHE/entity2vec.ckpt","w");
+			FILE* f5 = fopen("../res_RHE/typeMatrix.ckpt","w");
+			FILE* f6 = fopen("../res_RHE/domainMatrix.ckpt","w");
 			if(f2 != NULL) {
 			for (int i=0; i<relation_num; i++)		//relation2vec
 			{
@@ -541,7 +541,7 @@ void sgd()		//mini-batch SGD
 			}
 			fclose(f6);
 			}
-			FILE* fc = fopen(("../res_RHE/checkpoint.txt").c_str(),"w");
+			FILE* fc = fopen("../res_RHE/checkpoint.txt","w");
 			if (fc != NULL) {
 				fprintf(fc, "%d\n", epoch);
 				fclose(fc);
