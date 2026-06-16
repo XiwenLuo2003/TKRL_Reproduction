@@ -34,6 +34,7 @@ cd TKRL_Reproduction/RHE+STC
 cd TKRL_Reproduction/WHE+STC
 make
 ./Train_transT -size 50 -margin 1 -method 0
+./Train_transT -size 50 -margin 1 -method 0 -resume
 ./Test_transT unif
 
 # CITE

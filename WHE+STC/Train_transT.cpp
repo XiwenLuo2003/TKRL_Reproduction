@@ -318,13 +318,37 @@ void *rand_sel(void *tid_void)		//multi-thread train
 		train_triple_mul(fb_h[i],fb_l[i],fb_r[i],fb_h[i],fb_l[i],rel_neg,tid);
 		
 		//normalization
+		if (head_type_vec[fb_r[i]] >= type_mat_tmp.size() || head_type_vec[fb_r[i]] < 0) {
+			continue;
+		}
+		if (tail_type_vec[fb_r[i]] >= type_mat_tmp.size() || tail_type_vec[fb_r[i]] < 0) {
+			continue;
+		}
+		if (head_domain_vec[rel_neg] >= domain_mat_tmp.size() || head_domain_vec[rel_neg] < 0) {
+			continue;
+		}
+		if (head_type_vec[rel_neg] >= type_mat_tmp.size() || head_type_vec[rel_neg] < 0) {
+			continue;
+		}
+		if (tail_domain_vec[rel_neg] >= domain_mat_tmp.size() || tail_domain_vec[rel_neg] < 0) {
+			continue;
+		}
+		if (tail_type_vec[rel_neg] >= type_mat_tmp.size() || tail_type_vec[rel_neg] < 0) {
+			continue;
+		}
 		norm(relation_tmp[fb_r[i]]);
 		norm(relation_tmp[rel_neg]);
 		norm(entity_tmp[fb_h[i]]);
 		norm(entity_tmp[fb_l[i]]);
 		norm(entity_tmp[j]);
 		
+		if (head_domain_vec[fb_r[i]] >= domain_mat_tmp.size() || head_domain_vec[fb_r[i]] < 0) {
+			continue;
+		}
 		norm_2(entity_tmp[fb_h[i]], domain_mat_tmp[head_domain_vec[fb_r[i]]], type_mat_tmp[head_type_vec[fb_r[i]]], tid);
+		if (tail_domain_vec[fb_r[i]] >= domain_mat_tmp.size() || tail_domain_vec[fb_r[i]] < 0) {
+			continue;
+		}
 		norm_2(entity_tmp[fb_l[i]], domain_mat_tmp[tail_domain_vec[fb_r[i]]], type_mat_tmp[tail_type_vec[fb_r[i]]], tid);
 		if(flag_num<pr)
 			norm_2(entity_tmp[j], domain_mat_tmp[tail_domain_vec[fb_r[i]]], type_mat_tmp[tail_type_vec[fb_r[i]]], tid);
@@ -395,18 +419,25 @@ void sgd()		//mini-batch SGD
 		FILE* f3 = fopen(("../res_WHE/entity2vec."+version).c_str(),"w");
 		FILE* f5 = fopen(("../res_WHE/typeMatrix."+version).c_str(),"w");
 		FILE* f6 = fopen(("../res_WHE/domainMatrix."+version).c_str(),"w");
+		if(f2 != NULL) {
 		for (int i=0; i<relation_num; i++)		//relation2vec
 		{
 			for (int ii=0; ii<n; ii++)
 				fprintf(f2,"%.6lf\t",relation_vec[i][ii]);
 			fprintf(f2,"\n");
 		}
+		fclose(f2);
+		}
+		if(f3 != NULL) {
 		for (int i=0; i<entity_num; i++)		//entity_vec
 		{
 			for (int ii=0; ii<n; ii++)
 				fprintf(f3,"%.6lf\t",entity_vec[i][ii]);
 			fprintf(f3,"\n");
 		}
+		fclose(f3);
+		}
+		if(f5 != NULL) {
 		for (int i=0; i<type_num; i++)		//sub-type matrix
 		{
 			for (int ii=0; ii<n; ii++)
@@ -416,6 +447,9 @@ void sgd()		//mini-batch SGD
 			}
 			fprintf(f5,"\n");
 		}
+		fclose(f5);
+		}
+		if(f6 != NULL) {
 		for (int i=0; i<domain_num; i++)		//sub-type matrix
 		{
 			for (int ii=0; ii<n; ii++)
@@ -425,10 +459,8 @@ void sgd()		//mini-batch SGD
 			}
 			fprintf(f6,"\n");
 		}
-		fclose(f2);
-		fclose(f3);
-		fclose(f5);
 		fclose(f6);
+		}
 	}
 }
 

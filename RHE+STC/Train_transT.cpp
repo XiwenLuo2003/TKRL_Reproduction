@@ -15,6 +15,10 @@
 #include<assert.h>
 using namespace std;
 
+int epoch_start = 0;
+bool load_checkpoint = false;
+string version_out = "unif"; // used for save naming
+
 //Ruobing Xie
 //Representation Learning of Knowledge Graphs with Hierarchical Types
 //Recursive Hierarchy Encoder + Soft Type Constraint
@@ -84,7 +88,7 @@ int nbatches, batchsize;
 map<int,map<int,int> > left_entity,right_entity;
 map<int,double> left_num,right_num;
 
-int n,method;		//nùùdimension of entity/relation
+int n,method;		//n??dimension of entity/relation
 double res_triple,res_normal;		//loss function value
 double res_thread_triple[THREADS_NUM], res_thread_normal[THREADS_NUM];		//loss for each thread
 double count,count1;
@@ -213,23 +217,78 @@ void run(int n_in,double rate_in,double margin_in,int method_in)
 	for (int i=0; i<entity_tmp.size(); i++)
 		entity_tmp[i].resize(n);
 	
-	//init by pre-trained entity/relation embeddings of TransE
-	FILE* f1 = fopen(("../transE_res/entity2vec."+transE_version).c_str(),"r");
-	for (int i=0; i<entity_num; i++)
-	{
-		for (int ii=0; ii<n; ii++)
-			fscanf(f1,"%lf",&entity_vec[i][ii]);
-		norm(entity_vec[i]);
-	}
-	fclose(f1);
+	if (load_checkpoint) {
+		FILE* fc = fopen("../res_RHE/checkpoint.txt", "r");
+		if (fc != NULL) {
+			fclose(fc);
+			FILE* f1 = fopen(("../res_RHE/entity2vec.ckpt").c_str(),"r");
+			if (f1 != NULL) {
+				for (int i=0; i<entity_num; i++)
+				{
+					for (int ii=0; ii<n; ii++)
+						fscanf(f1,"%lf",&entity_vec[i][ii]);
+				}
+				fclose(f1);
+			}
 
-	FILE* f2 = fopen(("../transE_res/relation2vec."+transE_version).c_str(),"r");
-	for (int i=0; i<relation_num; i++)
-	{
-		for (int ii=0; ii<n; ii++)
-			fscanf(f2,"%lf",&relation_vec[i][ii]);
+			FILE* f2 = fopen(("../res_RHE/relation2vec.ckpt").c_str(),"r");
+			if (f2 != NULL) {
+				for (int i=0; i<relation_num; i++)
+				{
+					for (int ii=0; ii<n; ii++)
+						fscanf(f2,"%lf",&relation_vec[i][ii]);
+				}
+				fclose(f2);
+			}
+
+			FILE* f3 = fopen(("../res_RHE/typeMatrix.ckpt").c_str(),"r");
+			if (f3 != NULL) {
+				for (int i=0; i<type_num; i++)
+				{
+					for (int ii=0; ii<n; ii++)
+					{
+						for(int iii=0; iii<n; iii++)
+							fscanf(f3,"%lf",&type_mat[i][ii][iii]);
+					}
+				}
+				fclose(f3);
+			}
+			FILE* f4 = fopen(("../res_RHE/domainMatrix.ckpt").c_str(),"r");
+			if (f4 != NULL) {
+				for (int i=0; i<domain_num; i++)
+				{
+					for (int ii=0; ii<n; ii++)
+					{
+						for(int iii=0; iii<n; iii++)
+							fscanf(f4,"%lf",&domain_mat[i][ii][iii]);
+					}
+				}
+				fclose(f4);
+			}
+		}
+	} else {
+		//init by pre-trained entity/relation embeddings of TransE
+		FILE* f1 = fopen(("../transE_res/entity2vec."+transE_version).c_str(),"r");
+		if(f1 != NULL) {
+			for (int i=0; i<entity_num; i++)
+			{
+				for (int ii=0; ii<n; ii++)
+					fscanf(f1,"%lf",&entity_vec[i][ii]);
+				norm(entity_vec[i]);
+			}
+			fclose(f1);
+		}
+
+		FILE* f2 = fopen(("../transE_res/relation2vec."+transE_version).c_str(),"r");
+		if (f2 != NULL) {
+			for (int i=0; i<relation_num; i++)
+			{
+				for (int ii=0; ii<n; ii++)
+					fscanf(f2,"%lf",&relation_vec[i][ii]);
+			}
+			fclose(f2);
+		}
 	}
-	fclose(f2);
 	
 	//init domain matrix
 	domain_mat.resize(domain_num);
@@ -242,12 +301,14 @@ void run(int n_in,double rate_in,double margin_in,int method_in)
 		{
 			domain_mat[i][ii].resize(n);
 			domain_mat_tmp[i][ii].resize(n);
-			for(int iii=0; iii<n; iii++)
-			{
-				if(ii==iii)
-					domain_mat[i][ii][iii] = 1;
-				else
-					domain_mat[i][ii][iii] = 0;
+			if (!load_checkpoint) {
+				for(int iii=0; iii<n; iii++)
+				{
+					if(ii==iii)
+						domain_mat[i][ii][iii] = 1;
+					else
+						domain_mat[i][ii][iii] = 0;
+				}
 			}
 		}
 	}
@@ -262,12 +323,14 @@ void run(int n_in,double rate_in,double margin_in,int method_in)
 		{
 			type_mat[i][ii].resize(n);
 			type_mat_tmp[i][ii].resize(n);
-			for(int iii=0; iii<n; iii++)
-			{
-				if(ii==iii)
-					type_mat[i][ii][iii] = 1;
-				else
-					type_mat[i][ii][iii] = 0;
+			if (!load_checkpoint) {
+				for(int iii=0; iii<n; iii++)
+				{
+					if(ii==iii)
+						type_mat[i][ii][iii] = 1;
+					else
+						type_mat[i][ii][iii] = 0;
+				}
 			}
 		}
 	}
@@ -335,22 +398,22 @@ void *rand_sel(void *tid_void)		//multi-thread train
 		
 		//normalization
 		if (head_type_vec[fb_r[i]] >= type_mat_tmp.size() || head_type_vec[fb_r[i]] < 0) {
-			printf("ERROR: head_type_vec\n"); exit(1);
+			continue;
 		}
 		if (tail_type_vec[fb_r[i]] >= type_mat_tmp.size() || tail_type_vec[fb_r[i]] < 0) {
-			printf("ERROR: tail_type_vec\n"); exit(1);
+			continue;
 		}
 		if (head_domain_vec[rel_neg] >= domain_mat_tmp.size() || head_domain_vec[rel_neg] < 0) {
-			printf("ERROR: head_domain_vec rel_neg\n"); exit(1);
+			continue;
 		}
 		if (head_type_vec[rel_neg] >= type_mat_tmp.size() || head_type_vec[rel_neg] < 0) {
-			printf("ERROR: head_type_vec rel_neg\n"); exit(1);
+			continue;
 		}
 		if (tail_domain_vec[rel_neg] >= domain_mat_tmp.size() || tail_domain_vec[rel_neg] < 0) {
-			printf("ERROR: tail_domain_vec rel_neg\n"); exit(1);
+			continue;
 		}
 		if (tail_type_vec[rel_neg] >= type_mat_tmp.size() || tail_type_vec[rel_neg] < 0) {
-			printf("ERROR: tail_type_vec rel_neg\n"); exit(1);
+			continue;
 		}
 		norm(relation_tmp[fb_r[i]]);
 		norm(relation_tmp[rel_neg]);
@@ -359,13 +422,11 @@ void *rand_sel(void *tid_void)		//multi-thread train
 		norm(entity_tmp[j]);
 		
 		if (head_domain_vec[fb_r[i]] >= domain_mat_tmp.size() || head_domain_vec[fb_r[i]] < 0) {
-			printf("ERROR: head_domain_vec[%d] = %d (size=%lu)\n", fb_r[i], head_domain_vec[fb_r[i]], domain_mat_tmp.size());
-			exit(1);
+			continue;
 		}
 		norm_2(entity_tmp[fb_h[i]], domain_mat_tmp[head_domain_vec[fb_r[i]]], type_mat_tmp[head_type_vec[fb_r[i]]], tid);
 		if (tail_domain_vec[fb_r[i]] >= domain_mat_tmp.size() || tail_domain_vec[fb_r[i]] < 0) {
-			printf("ERROR: tail_domain_vec[%d] = %d (size=%lu)\n", fb_r[i], tail_domain_vec[fb_r[i]], domain_mat_tmp.size());
-			exit(1);
+			continue;
 		}
 		norm_2(entity_tmp[fb_l[i]], domain_mat_tmp[tail_domain_vec[fb_r[i]]], type_mat_tmp[tail_type_vec[fb_r[i]]], tid);
 		if(flag_num<pr)
@@ -399,7 +460,7 @@ void sgd()		//mini-batch SGD
 	double step = (rate_begin - rate_end) / (double)nepoch;		//dynamic learning rate setting
 	cout << step << ' ' << nepoch << endl;
 	rate = rate_begin;
-	for (int epoch=0; epoch<nepoch; epoch++)
+	for (int epoch=epoch_start; epoch<nepoch; epoch++)
 	{
 		rate -= step;
 		res_triple=0;
@@ -432,45 +493,111 @@ void sgd()		//mini-batch SGD
 			//cout << "update once : " << batch << endl;
 		}
 		//output
-		cout<<"epoch:"<<epoch<<' '<<res_triple<< ' ' << res_normal << endl;
-		FILE* f2 = fopen(("../res_RHE/relation2vec."+version).c_str(),"w");
-		FILE* f3 = fopen(("../res_RHE/entity2vec."+version).c_str(),"w");
-		FILE* f5 = fopen(("../res_RHE/typeMatrix."+version).c_str(),"w");
-		FILE* f6 = fopen(("../res_RHE/domainMatrix."+version).c_str(),"w");
-		for (int i=0; i<relation_num; i++)		//relation2vec
-		{
-			for (int ii=0; ii<n; ii++)
-				fprintf(f2,"%.6lf\t",relation_vec[i][ii]);
-			fprintf(f2,"\n");
-		}
-		for (int i=0; i<entity_num; i++)		//entity_vec
-		{
-			for (int ii=0; ii<n; ii++)
-				fprintf(f3,"%.6lf\t",entity_vec[i][ii]);
-			fprintf(f3,"\n");
-		}
-		for (int i=0; i<type_num; i++)		//sub-type matrix
-		{
-			for (int ii=0; ii<n; ii++)
+		if (epoch % 10 == 0 || epoch == nepoch - 1) {
+			cout<<"epoch:"<<epoch<<' '<<res_triple<< ' ' << res_normal << endl;
+			FILE* f2 = fopen(("../res_RHE/relation2vec.ckpt").c_str(),"w");
+			FILE* f3 = fopen(("../res_RHE/entity2vec.ckpt").c_str(),"w");
+			FILE* f5 = fopen(("../res_RHE/typeMatrix.ckpt").c_str(),"w");
+			FILE* f6 = fopen(("../res_RHE/domainMatrix.ckpt").c_str(),"w");
+			if(f2 != NULL) {
+			for (int i=0; i<relation_num; i++)		//relation2vec
 			{
-				for(int iii=0; iii<n; iii++)
-					fprintf(f5,"%.6lf\t",type_mat[i][ii][iii]);
+				for (int ii=0; ii<n; ii++)
+					fprintf(f2,"%.6lf\t",relation_vec[i][ii]);
+				fprintf(f2,"\n");
 			}
-			fprintf(f5,"\n");
-		}
-		for (int i=0; i<domain_num; i++)		//sub-type matrix
-		{
-			for (int ii=0; ii<n; ii++)
+			fclose(f2);
+			}
+			if(f3 != NULL) {
+			for (int i=0; i<entity_num; i++)		//entity_vec
 			{
-				for(int iii=0; iii<n; iii++)
-					fprintf(f6,"%.6lf\t",domain_mat[i][ii][iii]);
+				for (int ii=0; ii<n; ii++)
+					fprintf(f3,"%.6lf\t",entity_vec[i][ii]);
+				fprintf(f3,"\n");
 			}
-			fprintf(f6,"\n");
+			fclose(f3);
+			}
+			if(f5 != NULL) {
+			for (int i=0; i<type_num; i++)		//sub-type matrix
+			{
+				for (int ii=0; ii<n; ii++)
+				{
+					for(int iii=0; iii<n; iii++)
+						fprintf(f5,"%.6lf\t",type_mat[i][ii][iii]);
+				}
+				fprintf(f5,"\n");
+			}
+			fclose(f5);
+			}
+			if(f6 != NULL) {
+			for (int i=0; i<domain_num; i++)		//sub-type matrix
+			{
+				for (int ii=0; ii<n; ii++)
+				{
+					for(int iii=0; iii<n; iii++)
+						fprintf(f6,"%.6lf\t",domain_mat[i][ii][iii]);
+				}
+				fprintf(f6,"\n");
+			}
+			fclose(f6);
+			}
+			FILE* fc = fopen(("../res_RHE/checkpoint.txt").c_str(),"w");
+			if (fc != NULL) {
+				fprintf(fc, "%d\n", epoch);
+				fclose(fc);
+			}
+			
+			if (epoch == nepoch - 1) {
+				// final output
+				string version = transE_version;
+				FILE* f2 = fopen(("../res_RHE/relation2vec."+version).c_str(),"w");
+				FILE* f3 = fopen(("../res_RHE/entity2vec."+version).c_str(),"w");
+				FILE* f5 = fopen(("../res_RHE/typeMatrix."+version).c_str(),"w");
+				FILE* f6 = fopen(("../res_RHE/domainMatrix."+version).c_str(),"w");
+				if(f2 != NULL) {
+				for (int i=0; i<relation_num; i++)		//relation2vec
+				{
+					for (int ii=0; ii<n; ii++)
+						fprintf(f2,"%.6lf\t",relation_vec[i][ii]);
+					fprintf(f2,"\n");
+				}
+				fclose(f2);
+				}
+				if(f3 != NULL) {
+				for (int i=0; i<entity_num; i++)		//entity_vec
+				{
+					for (int ii=0; ii<n; ii++)
+						fprintf(f3,"%.6lf\t",entity_vec[i][ii]);
+					fprintf(f3,"\n");
+				}
+				fclose(f3);
+				}
+				if(f5 != NULL) {
+				for (int i=0; i<type_num; i++)		//sub-type matrix
+				{
+					for (int ii=0; ii<n; ii++)
+					{
+						for(int iii=0; iii<n; iii++)
+							fprintf(f5,"%.6lf\t",type_mat[i][ii][iii]);
+					}
+					fprintf(f5,"\n");
+				}
+				fclose(f5);
+				}
+				if(f6 != NULL) {
+				for (int i=0; i<domain_num; i++)		//sub-type matrix
+				{
+					for (int ii=0; ii<n; ii++)
+					{
+						for(int iii=0; iii<n; iii++)
+							fprintf(f6,"%.6lf\t",domain_mat[i][ii][iii]);
+					}
+					fprintf(f6,"\n");
+				}
+				fclose(f6);
+				}
+			}
 		}
-		fclose(f2);
-		fclose(f3);
-		fclose(f5);
-		fclose(f6);
 	}
 }
 
@@ -692,6 +819,18 @@ void train_triple_mul(int e1_a,int e2_a,int rel_a,int e1_b,int e2_b,int rel_b,in
 
 void prepare()		//preprocessing
 {
+	if (load_checkpoint) {
+		FILE* fc = fopen("../res_RHE/checkpoint.txt", "r");
+		if (fc != NULL) {
+			if (fscanf(fc, "%d", &epoch_start) == 1) {
+				cout << "Resuming from epoch: " << epoch_start << endl;
+				epoch_start++; // Start from the next epoch
+			}
+			fclose(fc);
+		} else {
+			cout << "Checkpoint file not found, starting from epoch 0" << endl;
+		}
+	}
     FILE* f1 = fopen("../data/entity2id.txt","r");
 	FILE* f2 = fopen("../data/relation2id.txt","r");
 	FILE* f3 = fopen("../data/type2id.txt","r");
@@ -700,7 +839,7 @@ void prepare()		//preprocessing
 	FILE* f6 = fopen("../data/relationDomain.txt","r");
 	FILE* f7 = fopen("../data/typeEntity.txt","r");
 	int x, y, z;
-	//build entity2IDùùID2entity map
+	//build entity2ID??ID2entity map
 	while (fscanf(f1,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -708,7 +847,7 @@ void prepare()		//preprocessing
 		id2entity[x]=st;		//<ID,entity>
 		entity_num++;
 	}
-	//build relation2IDùùID2relation map
+	//build relation2ID??ID2relation map
 	while (fscanf(f2,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -716,7 +855,7 @@ void prepare()		//preprocessing
 		id2relation[x]=st;
 		relation_num++;
 	}
-	//build type2idùùid2type map
+	//build type2id??id2type map
 	while (fscanf(f3,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -724,7 +863,7 @@ void prepare()		//preprocessing
 		id2type[x]=st;		//<ID,type>
 		type_num++;
 	}
-	//build domain2idùùid2domain map
+	//build domain2id??id2domain map
 	while (fscanf(f4,"%s%d",buf,&x)==2)
 	{
 		string st=buf;
@@ -844,6 +983,7 @@ int main(int argc,char**argv)
     if ((i = ArgPos((char *)"-size", argc, argv)) > 0) n = atoi(argv[i + 1]);
     if ((i = ArgPos((char *)"-margin", argc, argv)) > 0) margin = atof(argv[i + 1]);
     if ((i = ArgPos((char *)"-method", argc, argv)) > 0) method = atoi(argv[i + 1]);
+    if ((i = ArgPos((char *)"-resume", argc, argv)) > 0) load_checkpoint = true;
     cout<<"size = "<<n<<endl;
     cout<<"learing rate = "<<rate<<endl;
     cout<<"margin = "<<margin<<endl;
